@@ -6,16 +6,14 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import threading
 import discord
 from discord.ext import commands
 from discord import app_commands
 import uvicorn
-import secrets
 
 # ==================== XTRIALS ENVIRONMENT ====================
 OWNER_PASSWORD = os.getenv("OWNER_PASSWORD", "xtrials_basement_1337")
@@ -27,7 +25,7 @@ if not DISCORD_TOKEN:
 app = FastAPI(title="XTRIALS BASEMENT BACKEND", description="52.9 Hz • BASEMENT ACCESS • 47 VICTIMS")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://xtrials-two.vercel.app/main"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -625,7 +623,7 @@ def is_owner():
         if owner_role and owner_role in interaction.user.roles:
             return True
         # Check for specific owner IDs
-        owner_ids = [123456789012345678]  # Replace with your Discord ID
+        owner_ids = []  # Add your Discord ID here
         return interaction.user.id in owner_ids
     return app_commands.check(predicate)
 
@@ -725,9 +723,14 @@ async def basement_control(
     """[OWNER] Control the basement — fuck with the visitors"""
     
     # Owner check
-    if not is_owner():
-        await interaction.response.send_message("❌ You are not authorized to enter the basement control room.", ephemeral=True)
-        return
+    # Simple check - replace with your Discord ID
+    owner_ids = []  # Add your Discord ID here
+    if interaction.user.id not in owner_ids:
+        # Also check for role
+        owner_role = discord.utils.get(interaction.guild.roles, name="Basement Owner") if interaction.guild else None
+        if not owner_role or owner_role not in interaction.user.roles:
+            await interaction.response.send_message("❌ You are not authorized to enter the basement control room.", ephemeral=True)
+            return
     
     await interaction.response.defer()
     
@@ -1217,12 +1220,18 @@ def run_discord_bot():
 # Start bot in thread
 threading.Thread(target=run_discord_bot, daemon=True).start()
 
-# ==================== RUN FASTAPI ====================
+# ==================== RENDER COMPATIBILITY ====================
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
     print("🔴 XTRIALS BASEMENT BACKEND STARTING...")
     print(f"🔴 Frequency: 52.9 Hz")
     print(f"🔴 Basement Door: OPEN")
     print(f"🔴 Victims: 47 in basement")
     print(f"🔴 Current Visitor: #{victim_counter}")
     print(f"🔴 Discord Bot: {'ACTIVE' if DISCORD_TOKEN else 'DISABLED'}")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print(f"🔴 Port: {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
+else:
+    # For Render/Gunicorn
+    port = int(os.getenv("PORT", 8000))
+    print(f"🔴 XTRIALS Basement loaded in module mode on port {port}")
